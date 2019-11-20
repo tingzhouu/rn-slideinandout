@@ -18,24 +18,13 @@ export default class App extends Component {
   constructor(props) {
     super(props);
     const scrollAnim = new Animated.Value(0);
-    const offsetAnim = new Animated.Value(0);
+    const offsetAnimFloatingItem = new Animated.Value(0);
 
     this.state = {
       scrollAnim,
-      offsetAnim,
-      clampedScroll: Animated.diffClamp(
-        Animated.add(
-          scrollAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 1],
-            extrapolateLeft: 'clamp',
-          }),
-          // offsetAnim,
-          0
-        ),
-        0,
-        NAVBAR_HEIGHT - STATUS_BAR_HEIGHT,
-      ),
+      //
+      offsetAnimFloatingItem,
+      //
       clampedScrollFloatingItem: Animated.diffClamp(
         Animated.add(
           scrollAnim.interpolate({
@@ -43,21 +32,61 @@ export default class App extends Component {
             outputRange: [0, 1],
             extrapolateLeft: 'clamp',
           }),
-          // offsetAnim,
-          0
+          offsetAnimFloatingItem,
         ),
         0,
         FLOATING_ITEM_WIDTH,
       ),
     }
   }
+
+  _clampedScrollValueFloatingItem = 0;
+  _offsetValue = 0;
+  _scrollValue = 0;
+
+  componentDidMount() {
+    const { scrollAnim, offsetAnimFloatingItem } = this.state;
+    scrollAnim.addListener(({ value }) => {
+      const diff = value - this._scrollValue;
+      this._scrollValue = value;
+      this._clampedScrollValueFloatingItem = Math.min(
+        Math.max(this._clampedScrollValueFloatingItem + diff, 0),
+        FLOATING_ITEM_WIDTH,
+      );
+    })
+    offsetAnimFloatingItem.addListener(({ value }) => {
+      this._offsetValue = value;
+    })
+  }
+
+  _onScrollEndDrag = () => {
+    this._scrollEndTimer = setTimeout(this._onMomentumScrollEnd, 250);
+  };
+
+  _onMomentumScrollBegin = () => {
+    clearTimeout(this._scrollEndTimer);
+  };
+
+  _onMomentumScrollEnd = () => {
+    const { offsetAnimFloatingItem } = this.state;
+
+    let toValueFloatingItem = 0;
+    const isPastHalfwayMarkFloatingItem = this._scrollValue > NAVBAR_HEIGHT && this._clampedScrollValueFloatingItem > (FLOATING_ITEM_WIDTH) / 2;
+    if (isPastHalfwayMarkFloatingItem) {
+      toValueFloatingItem = this._offsetValue + FLOATING_ITEM_WIDTH;
+    } else {
+      toValueFloatingItem = this._offsetValue - FLOATING_ITEM_WIDTH;
+    }
+    Animated.timing(offsetAnimFloatingItem, {
+      toValue: toValueFloatingItem,
+      duration: 350,
+      useNativeDriver: true,
+    }).start();
+
+  };
+
   render() {
-    const { clampedScroll, clampedScrollFloatingItem } = this.state;
-    const navbarTranslate = clampedScroll.interpolate({
-      inputRange: [0, NAVBAR_HEIGHT - STATUS_BAR_HEIGHT],
-      outputRange: [0, -(NAVBAR_HEIGHT - STATUS_BAR_HEIGHT)],
-      extrapolate: 'clamp',
-    });
+    const { clampedScrollFloatingItem } = this.state;
     const floatingItemTranslate = clampedScrollFloatingItem.interpolate({
       inputRange: [0, FLOATING_ITEM_WIDTH],
       outputRange: [0, (FLOATING_ITEM_WIDTH)],
@@ -68,6 +97,9 @@ export default class App extends Component {
         <AnimatedScrollView
           style={styles.contentContainer}
           scrollEventThrottle={16}
+          onMomentumScrollBegin={this._onMomentumScrollBegin}
+          onMomentumScrollEnd={this._onMomentumScrollEnd}
+          onScrollEndDrag={this._onScrollEndDrag}
           onScroll={Animated.event(
             [
               { nativeEvent: { contentOffset: { y: this.state.scrollAnim } } }
@@ -82,7 +114,7 @@ export default class App extends Component {
           ))}
         </AnimatedScrollView>
         <Animated.View
-          style={[styles.navbar, { transform: [{ translateY: navbarTranslate }] }]}
+          style={[styles.navbar]}
         >
           <Text>NAVBAR</Text>
         </Animated.View>
