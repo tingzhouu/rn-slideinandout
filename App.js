@@ -2,13 +2,8 @@ import React, { Component } from 'react';
 import { Platform, StyleSheet, Text, View, ScrollView, Animated } from 'react-native';
 
 const NAVBAR_HEIGHT = 64;
-const FLOATING_ITEM_WIDTH = 100;
+const REF_ACTION_BUTTON_WIDTH = 100;
 const STATUS_BAR_HEIGHT = Platform.select({ ios: 20, android: 24 });
-
-const instructions = Platform.select({
-  ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
-  android: 'Double tap R on your keyboard to reload,\n' + 'Shake or press menu button for dev menu',
-});
 
 const ITEMS = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
 
@@ -17,46 +12,46 @@ const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 export default class App extends Component {
   constructor(props) {
     super(props);
-    const scrollAnim = new Animated.Value(0);
-    const offsetAnimFloatingItem = new Animated.Value(0);
+    const scrollY = new Animated.Value(0);
+    const offsetAnimRefActionButton = new Animated.Value(0);
 
     this.state = {
-      scrollAnim,
+      scrollY,
       //
-      offsetAnimFloatingItem,
+      offsetAnimRefActionButton,
       //
-      clampedScrollFloatingItem: Animated.diffClamp(
+      clampedScrollRefActionButton: Animated.diffClamp(
         Animated.add(
-          scrollAnim.interpolate({
+          scrollY.interpolate({
             inputRange: [0, 1],
             outputRange: [0, 1],
             extrapolateLeft: 'clamp',
           }),
-          offsetAnimFloatingItem,
+          offsetAnimRefActionButton,
         ),
         0,
-        FLOATING_ITEM_WIDTH,
+        REF_ACTION_BUTTON_WIDTH,
       ),
     }
   }
 
-  _clampedScrollValueFloatingItem = 0;
+  _clampedScrollValueRefActionButton = 0;
   _offsetValue = 0;
   _scrollValue = 0;
 
   componentDidMount() {
-    const { scrollAnim, offsetAnimFloatingItem } = this.state;
-    scrollAnim.addListener(({ value }) => {
+    const { scrollY, offsetAnimRefActionButton } = this.state;
+    scrollY.addListener(({ value }) => {
       const diff = value - this._scrollValue;
       this._scrollValue = value;
-      this._clampedScrollValueFloatingItem = Math.min(
-        Math.max(this._clampedScrollValueFloatingItem + diff, 0),
-        FLOATING_ITEM_WIDTH,
+      this._clampedScrollValueRefActionButton = Math.min(
+        Math.max(this._clampedScrollValueRefActionButton + diff, 0),
+        REF_ACTION_BUTTON_WIDTH,
       );
     })
-    offsetAnimFloatingItem.addListener(({ value }) => {
+    offsetAnimRefActionButton.addListener(({ value }) => {
       this._offsetValue = value;
-    })
+    });
   }
 
   _onScrollEndDrag = () => {
@@ -68,28 +63,27 @@ export default class App extends Component {
   };
 
   _onMomentumScrollEnd = () => {
-    const { offsetAnimFloatingItem } = this.state;
+    const { offsetAnimRefActionButton } = this.state;
 
-    let toValueFloatingItem = 0;
-    const isPastHalfwayMarkFloatingItem = this._scrollValue > NAVBAR_HEIGHT && this._clampedScrollValueFloatingItem > (FLOATING_ITEM_WIDTH) / 2;
-    if (isPastHalfwayMarkFloatingItem) {
-      toValueFloatingItem = this._offsetValue + FLOATING_ITEM_WIDTH;
+    let toValueRefActionButtonOffset = 0;
+    const isPastHalfwayMarkRefActionButton = this._scrollValue > NAVBAR_HEIGHT && this._clampedScrollValueRefActionButton > (REF_ACTION_BUTTON_WIDTH) / 2;
+    if (isPastHalfwayMarkRefActionButton) {
+      toValueRefActionButtonOffset = this._offsetValue + REF_ACTION_BUTTON_WIDTH;
     } else {
-      toValueFloatingItem = this._offsetValue - FLOATING_ITEM_WIDTH;
+      toValueRefActionButtonOffset = this._offsetValue - REF_ACTION_BUTTON_WIDTH;
     }
-    Animated.timing(offsetAnimFloatingItem, {
-      toValue: toValueFloatingItem,
+    Animated.timing(offsetAnimRefActionButton, {
+      toValue: toValueRefActionButtonOffset,
       duration: 350,
       useNativeDriver: true,
     }).start();
-
   };
 
   render() {
-    const { clampedScrollFloatingItem } = this.state;
-    const floatingItemTranslate = clampedScrollFloatingItem.interpolate({
-      inputRange: [0, FLOATING_ITEM_WIDTH],
-      outputRange: [0, (FLOATING_ITEM_WIDTH)],
+    const { clampedScrollRefActionButton } = this.state;
+    const refActionButtonTranslateX = clampedScrollRefActionButton.interpolate({
+      inputRange: [0, REF_ACTION_BUTTON_WIDTH],
+      outputRange: [0, (REF_ACTION_BUTTON_WIDTH)],
       extrapolate: 'clamp',
     });
     return (
@@ -102,7 +96,7 @@ export default class App extends Component {
           onScrollEndDrag={this._onScrollEndDrag}
           onScroll={Animated.event(
             [
-              { nativeEvent: { contentOffset: { y: this.state.scrollAnim } } }
+              { nativeEvent: { contentOffset: { y: this.state.scrollY } } }
             ],
             { useNativeDriver: true },
           )}
@@ -119,9 +113,9 @@ export default class App extends Component {
           <Text>NAVBAR</Text>
         </Animated.View>
         <Animated.View
-          style={[styles.floatingItem, { transform: [{ translateX: floatingItemTranslate }] }]}
+          style={[styles.floatingItem, { transform: [{ translateX: refActionButtonTranslateX }] }]}
         >
-          <Text>REFER</Text>
+          <Text>YOOHOO!</Text>
         </Animated.View>
       </View>
     );
@@ -159,7 +153,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 100,
     right: 0,
-    width: FLOATING_ITEM_WIDTH,
+    width: REF_ACTION_BUTTON_WIDTH,
     height: 40,
     backgroundColor: 'red',
     justifyContent: 'center',
